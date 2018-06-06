@@ -66,41 +66,43 @@ def register():
 @app.route('/login', methods = ['GET', 'POST'])
 def login():
 	if request.method == 'POST':
-		userbane = request.form('username')
-		password_candidate = request.form('password')
+		username = request.form['username']
+		password_candidate = request.form['password']
 
 		cur = mysql.connection.cursor()
 
-		result = cursor.execute("SELECT * FROM users WHERE username = &s", [username])
+		result = cur.execute("SELECT * FROM users WHERE username = %s", [username])
 
 		if result > 0:
 			data = cur.fetchone()
 			password = data['password']
-
+			print(password_candidate, password)
 			if sha256_crypt.verify(password_candidate, password):
+				print("Valid User")
 				session['logged_in'] = True
 				session['username'] = username
-
 				flash('You are now logged in','success')
 				return redirect(url_for('dashboard'))
 			else:
 				error = 'Invalid login'
+				print("Invalid User")
 				return render_template('login.html',error=error)
 			cur.close()
 		else:
 			error = 'Username not found'
+			print("User Name not found")
 			return render_template('login.html',error=error)
 	return render_template('login.html')
 
-	def is_logged_in(f):
-		@wraps(f)
-		def wrap(*args, **kwargs):
-			if 'logged _in' in session:
-				return f(*args, **kwargs)
-			else:
-				flash('Unauthorized, Please login','danger')
-				return redirect(url_for('login'))
-		return wrap
+def is_logged_in(f):
+	@wraps(f)
+	def wrap(*args, **kwargs):
+		if 'logged_in' in session:
+			return f(*args, **kwargs)
+		else:
+			flash('Unauthorized, Please login','danger')
+			return redirect(url_for('login'))
+	return wrap
 
 @app.route('/logout')
 def logout():
