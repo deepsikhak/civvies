@@ -16,7 +16,7 @@ app.config['MYSQL_CURSORCLASS'] = 'DictCursor'
 
 mysql = MySQL(app)
 
-Categories = Categories()
+#Categories = Categories()
 
 
 @app.route('/', methods=['GET'])
@@ -30,11 +30,22 @@ def whatsnew():
 
 @app.route('/categories', methods=['GET'])
 def categories():
-    return render_template('categories.html', categories = Categories)
+    cur = mysql.connection.cursor()
+    categories= cur.execute("SELECT * FROM categories ")
+    categories = cur.fetchall()
+    cur.close()
+    if len(categories) > 0:
+    	return render_template('categories.html', categories = categories)
+    else:
+    	msg = 'No Items found'
+    	return redirect(url_for('add_categories'))
 
 @app.route('/category/<string:id>/', methods=['GET'])
 def category(id):
-    return render_template('category.html', id=id)
+	cur = mysql.connection.cursor()
+	categories= cur.execute("SELECT * FROM categories")
+	categories = cur.fetchone()
+	return render_template('category.html', categories = categories)
 
 class RegisterForm(Form):
 	name= StringField('Name',[validators.Length(min=1,max=50)])
@@ -62,6 +73,8 @@ def register():
 		flash('You are now registered and can log in', 'success')
 		return redirect(url_for('login'))
 	return render_template('register.html',form = form)	
+
+
 
 @app.route('/login', methods = ['GET', 'POST'])
 def login():
@@ -105,6 +118,7 @@ def is_logged_in(f):
 	return wrap
 
 @app.route('/logout')
+@is_logged_in
 def logout():
 	session.clear()
 	flash('You are now logged out','success')
@@ -113,7 +127,50 @@ def logout():
 @app.route('/dashboard')
 @is_logged_in
 def dashboard():
-	return render_template('dashboard.html')
+
+	cur = mysql.connection.cursor()
+
+	categories= cur.execute("SELECT * FROM categories")
+
+	categories = cur.fetchall()
+	cur.close()
+	if len(categories) > 0:
+		return render_template('dashboard.html', categories = categories)
+	else:
+		msg = 'No Items found'
+		return render_template('dashboard.html', msg = msg)
+
+	
+
+class category_form(Form):
+	title= StringField('Title',[validators.Length(min=1,max=200)])
+	body = TextAreaField('Username', [validators.Length(min=30)])
+	
+@app.route('/add_categories', methods=['GET', 'POST'])
+@is_logged_in
+def add_categories():
+	form = category_form(request.form)
+	if request.method == 'POST'and form.validate():
+		title = form.title.data
+		body = form.body.data
+
+		cur = mysql.connection.cursor()
+
+		cur.execute("INSERT INTO categories(title, body, author) VALUES(%s, %s, %s)",(title,body,session['username']))
+
+		mysql.connection.commit()
+
+		cur.close()
+
+
+		flash('Items Added', 'success')
+
+		return redirect(url_for('dashboard'))
+
+	return render_template('add_categories.html', form = form)
+
+
+
 
 if __name__ == '__main__':
 	app.secret_key = 'secret123'
