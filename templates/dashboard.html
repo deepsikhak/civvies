@@ -21,7 +21,7 @@
         <td>{{item.create_date}}</td>
         <td><a href="edit_items/{{item.id}}" class="btn btn-default pull-right">Edit</a></td>
         <td>
-          <form action="{{url_for('add_categories', id=item.id)}}" method="post">
+          <form action="{{url_for('delete_items', id=item.id)}}" method="post">
             <input type="hidden" name="_method" value="DELETE">
             <input type="submit" value="Delete" class="btn btn-danger">
           </form>

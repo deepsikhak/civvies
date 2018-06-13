@@ -43,7 +43,7 @@ def categories():
 @app.route('/category/<string:id>/', methods=['GET'])
 def category(id):
 	cur = mysql.connection.cursor()
-	categories= cur.execute("SELECT * FROM categories")
+	categories= cur.execute("SELECT * FROM categories where id = %s", [int(id)])
 	categories = cur.fetchone()
 	return render_template('category.html', categories = categories)
 
@@ -169,6 +169,54 @@ def add_categories():
 
 	return render_template('add_categories.html', form = form)
 
+
+@app.route('/edit_categories/strind:id', methods=['GET', 'POST'])
+@is_logged_in
+def edit_categories(id):
+
+	cur = mysql.connection.cursor()
+	result = cur.execute("SELECT * FROM Categories WHERE id = %s", [id])
+
+	categories = cur.fetchone()
+
+	form = category_form(request.form)
+
+	form.title.data = request.form['title']
+	form.title.data = request.form['body']
+	if request.method == 'POST'and form.validate():
+		title = form.title.data
+		body = form.body.data
+
+		cur = mysql.connection.cursor()
+
+		cur.execute("UPDATE  categories  SET title = %s, body = %s WHERE id = %s", (title,body))
+
+		mysql.connection.commit()
+
+		cur.close()
+
+
+		flash('Items edited', 'success')
+
+		return redirect(url_for('dashboard'))
+
+	return render_template('add_categories.html', form = form)
+
+@app.route('/delete_items/<string:id>',methods = ['POST'])
+@is_logged_in
+def delete_items(id):
+
+	cur = mysql.connection.cursor()
+
+	cur.execute("DELETE FROM categories WHERE id=%s",[id])
+
+	mysql.connection.commit()
+
+	cur.close()
+
+	flash("Items Deleted",'success')
+
+	return redirect(url_for('dashboard'))
 
 
 
